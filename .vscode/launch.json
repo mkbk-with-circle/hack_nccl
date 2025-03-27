@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/yuanmingyulinyizaitaofan/Desktop/学习生活资料/北大&科研/lgy/LLM-simulation/my_nccl/nccl-2.17.1-1/src",
+      "program": "/Users/yuanmingyulinyizaitaofan/Desktop/学习生活资料/北大&科研/lgy/LLM-simulation/my_nccl/nccl-2.17.1-1/src/build/Debug/outDebug"
+    }
+  ]
+}
