@@ -3,7 +3,10 @@
     {
       "name": "macos-clang-arm64",
       "includePath": [
-        "${workspaceFolder}/**"
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/fake_nccl/include/**",
+        "${workspaceFolder}/fake_nccl/include/plugin/**",
+        "${workspaceFolder}/fake_nccl/include/nvtx3/**"
       ],
       "compilerPath": "/usr/bin/clang",
       "cStandard": "${default}",

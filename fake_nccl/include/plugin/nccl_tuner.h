@@ -9,7 +9,7 @@
 #define NCCL_TUNER_H_
 
 #include "nccl.h"
-#include "nccl_common.h"
+#include "../nccl_common.h"
 
 #include "tuner/tuner_v4.h"
 #include "tuner/tuner_v3.h"

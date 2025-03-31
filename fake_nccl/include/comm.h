@@ -721,7 +721,15 @@ static inline ncclRedOp_t ncclUserRedOpMangle(ncclComm *comm, ncclRedOp_t op) {
   return op1 < int(ncclNumOps) ? op : ncclRedOp_t(op1);
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ncclResult_t ncclCommEnsureReady(ncclComm_t comm);
 ncclResult_t ncclCommSetAsyncError(ncclComm_t comm, ncclResult_t nextState);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
