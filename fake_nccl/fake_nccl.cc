@@ -11,13 +11,11 @@
 //初始化部分*************************************************
 NCCL_API(ncclResult_t, ncclCommInitAll, ncclComm_t* comms, int ndev, const int* devlist);
 ncclResult_t ncclCommInitAll(ncclComm_t* comms, int ndev, const int* devlist){
-    printf(">>> Intercepted ncclCommInitRank!\n");
     return ncclSuccess;
 }
 
 NCCL_API(ncclResult_t, ncclCommInitRank, ncclComm_t* newcomm, int nranks, ncclUniqueId commId, int myrank);
 ncclResult_t ncclCommInitRank(ncclComm_t* newcomm, int nranks, ncclUniqueId commId, int myrank) {
-    printf(">>> Intercepted ncclCommInitRank!\n");
     return ncclSuccess;
 }
 
@@ -28,7 +26,6 @@ ncclResult_t ncclCommDestroy(ncclComm_t comm) {
 
 NCCL_API(ncclResult_t, ncclGetUniqueId, ncclUniqueId* out);
 ncclResult_t ncclGetUniqueId(ncclUniqueId* out) {
-    printf(">>> Intercepted ncclGetUniqueId!\n");
   return ncclSuccess;
 }
 
@@ -115,7 +112,6 @@ NCCL_API(ncclResult_t, ncclAllReduce, const void* sendbuff, void* recvbuff, size
     ncclDataType_t datatype, ncclRedOp_t op, ncclComm* comm, cudaStream_t stream);
 ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
     ncclDataType_t datatype, ncclRedOp_t op, ncclComm* comm, cudaStream_t stream){
-    printf(">>> Intercepted ncclAllReduce!\n");
     return ncclSuccess;
 }
 
