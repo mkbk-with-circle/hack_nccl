@@ -81,6 +81,7 @@ class payload_schema {
 // @param T name of the used NVTX payload schema without "Schema" suffix.
 // @param P payload parameters/entries
 #define NVTX3_FUNC_WITH_PARAMS(N, T, P) \
+  printf("NVTX3_FUNC_WITH_PARAMS\n"); \
   constexpr uint64_t schemaId = NVTX_PAYLOAD_ENTRY_TYPE_SCHEMA_ID_STATIC_START + NVTX_SID_##N; \
   static const payload_schema schema{T##Schema, std::extent<decltype(T##Schema)>::value - 1, \
     schemaId, sizeof(T)}; \
