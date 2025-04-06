@@ -1,0 +1,57 @@
+--- fake.txt	2025-04-06 13:43:38.217839315 +0000
++++ ground.txt	2025-04-06 13:32:28.448651549 +0000
+@@ -5,23 +5,23 @@
+ ID: 4, Name: ## process_group:init ##
+ ID: 5, Name: c10d::allreduce_
+ ID: 6, Name: record_param_comms
+-ID: 7, Name: fake_nccl_all_reduce(float*)
++ID: 7, Name: ncclDevKernel_AllReduce_Sum_f32_RING_LL(ncclDevKernelArgsStorage<4096ul>)
+ ID: 8, Name: record_param_comms
+ ID: 9, Name: nccl:all_reduce
+ ID: 10, Name: record_param_comms
+ ID: 11, Name: c10d::allreduce_
+ ID: 12, Name: record_param_comms
+-ID: 13, Name: fake_nccl_all_reduce(float*)
++ID: 13, Name: ncclDevKernel_AllReduce_Sum_f32_RING_LL(ncclDevKernelArgsStorage<4096ul>)
+ ID: 14, Name: nccl:all_reduce
+ ID: 15, Name: record_param_comms
+ ID: 16, Name: c10d::broadcast_
+ ID: 17, Name: record_param_comms
+-ID: 18, Name: fake_nccl_bcast(float*)
++ID: 18, Name: ncclDevKernel_Broadcast_RING_LL(ncclDevKernelArgsStorage<4096ul>)
+ ID: 19, Name: nccl:broadcast
+ ID: 20, Name: record_param_comms
+ ID: 21, Name: c10d::reduce_
+ ID: 22, Name: record_param_comms
+-ID: 23, Name: fake_nccl_reduce(float*)
++ID: 23, Name: ncclDevKernel_Reduce_Sum_f32_RING_LL(ncclDevKernelArgsStorage<4096ul>)
+ ID: 24, Name: nccl:reduce
+ ID: 25, Name: record_param_comms
+ ID: 26, Name: aten::empty_like
+@@ -36,7 +36,7 @@
+ ID: 35, Name: aten::as_strided
+ ID: 36, Name: c10d::reduce_scatter_
+ ID: 37, Name: record_param_comms
+-ID: 38, Name: fake_nccl_reduce_scatter(float*)
++ID: 38, Name: ncclDevKernel_ReduceScatter_Sum_f32_RING_LL(ncclDevKernelArgsStorage<4096ul>)
+ ID: 39, Name: aten::is_same_size
+ ID: 40, Name: aten::is_same_size
+ ID: 41, Name: aten::empty
+@@ -56,7 +56,7 @@
+ ID: 55, Name: aten::empty_strided
+ ID: 56, Name: c10d::allgather_
+ ID: 57, Name: record_param_comms
+-ID: 58, Name: fake_nccl_all_gather(float*)
++ID: 58, Name: ncclDevKernel_AllGather_RING_LL(ncclDevKernelArgsStorage<4096ul>)
+ ID: 59, Name: aten::is_same_size
+ ID: 60, Name: aten::is_same_size
+ ID: 61, Name: aten::empty
+@@ -74,7 +74,7 @@
+ ID: 73, Name: aten::empty_strided
+ ID: 74, Name: c10d::recv_
+ ID: 75, Name: record_param_comms
+-ID: 76, Name: fake_nccl_recv(float*)
++ID: 76, Name: ncclDevKernel_SendRecv(ncclDevKernelArgsStorage<4096ul>)
+ ID: 77, Name: record_param_comms
+ ID: 78, Name: nccl:recv 1<-0
+ ID: 79, Name: record_param_comms

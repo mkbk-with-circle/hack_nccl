@@ -44,20 +44,47 @@ if __name__ == "__main__":
         on_trace_ready=trace_handler,
         record_shapes=True
     ) as prof:
-        for epoch in range(20):
-            result_on_gpu = gpu_matrix_multiplication(matrix_a, matrix_b)
+            for epoch in range(20):
+                result_on_gpu = gpu_matrix_multiplication(matrix_a, matrix_b)
 
-            # 模拟一次 NCCL all_reduce（每个进程对计算结果做规约）
-            dist.all_reduce(result_on_gpu)
 
-            if epoch == 11:
-                et.stop()
-            if epoch == 10:
-                et.start()
-                for i in range(10):
+                # 开始记录 ExecutionTrace（第10轮开始）
+                if epoch == 10:
+                    et.start()
+                    dist.all_reduce(result_on_gpu)
+                    # 模拟一次 all_reduce（多次）
                     dist.all_reduce(result_on_gpu)
 
-            prof.step()
+                    # 模拟 broadcast（从 rank 0 广播给其他）
+                    dist.broadcast(result_on_gpu, src=0)
+
+                    # 模拟 reduce（从各 rank 收集到 rank 0）
+                    dist.reduce(result_on_gpu, dst=0)
+
+                    # 模拟 reduce_scatter（把结果均分发给所有 rank）
+                    recv_buffer = torch.empty_like(result_on_gpu)
+                    dist.reduce_scatter(recv_buffer, list(result_on_gpu.chunk(dist.get_world_size())))
+
+                    # 模拟 all_gather（每个 rank 都收集所有 rank 的数据）
+                    gathered = [torch.empty_like(result_on_gpu) for _ in range(dist.get_world_size())]
+                    dist.all_gather(gathered, result_on_gpu)
+
+                    # 模拟 send/recv（rank 0 发送给 1，1 接收）
+                    if dist.get_world_size() >= 2:
+                        tag = 123
+                        if dist.get_rank() == 0:
+                            dist.send(result_on_gpu, dst=1, tag=tag)
+                        elif dist.get_rank() == 1:
+                            recv = torch.empty_like(result_on_gpu)
+                            dist.recv(recv, src=0, tag=tag)
+
+
+                # 停止记录 ExecutionTrace（第11轮）
+                if epoch == 11:
+                    et.stop()
+
+                prof.step()
+
 
     et.unregister_callback()
     dist.destroy_process_group()

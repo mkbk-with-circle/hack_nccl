@@ -24,7 +24,7 @@
 
 #!/bin/bash
 
-#./run.sh --node 4 --if_link 1 --name test1 --chakra_rank 2
+#./run.sh --node 2 --if_link 1 --name test --chakra_rank 1
 
 
 # 默认参数初始化

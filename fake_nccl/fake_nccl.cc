@@ -8,7 +8,24 @@
 #include "include/register.h"
 #include "include/transport.h"
 #include "include/nvtx.h"
+#include <iostream>
 
+void printNcclConfig() {
+    const char* algo = std::getenv("NCCL_ALGO");
+    const char* proto = std::getenv("NCCL_PROTO");
+
+    if (algo) {
+        std::cout << "NCCL_ALGO: " << algo << std::endl;
+    } else {
+        std::cout << "NCCL_ALGO is not set." << std::endl;
+    }
+
+    if (proto) {
+        std::cout << "NCCL_PROTO: " << proto << std::endl;
+    } else {
+        std::cout << "NCCL_PROTO is not set." << std::endl;
+    }
+}
 //初始化部分*************************************************
 NCCL_API(ncclResult_t, ncclCommInitAll, ncclComm_t* comms, int ndev, const int* devlist);
 ncclResult_t ncclCommInitAll(ncclComm_t* comms, int ndev, const int* devlist){
@@ -104,12 +121,41 @@ ncclResult_t ncclMemFree(void* ptr) {
     return ncclSuccess;
 }
 //集合通信部分*************************************************
+
+__global__ void fake_nccl_all_gather(float* data) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) {
+        // no-op
+    }
+}
+
 NCCL_API(ncclResult_t, ncclAllGather, const void* sendbuff, void* recvbuff, size_t sendcount,
     ncclDataType_t datatype, ncclComm_t comm, cudaStream_t stream);
 ncclResult_t ncclAllGather(const void* sendbuff, void* recvbuff, size_t sendcount,
     ncclDataType_t datatype, ncclComm_t comm, cudaStream_t stream){
+    nvtxRangePushA("nccl:all_gather");
+    printf("nccl:all_gather\n");
+    printNcclConfig();
+    float* dummy_data;
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
+
+    dim3 threads(1);
+    dim3 blocks(1);
+
+    fake_nccl_all_gather<<<blocks, threads, 0, stream>>>(dummy_data);
+    // Ensure kernel execution is complete
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
+
+    cudaFree(dummy_data);
+    nvtxRangePop();
     return ncclSuccess;
 }
+
 
 
 __global__ void fake_nccl_all_reduce(float* data) {
@@ -118,8 +164,6 @@ __global__ void fake_nccl_all_reduce(float* data) {
         // no-op
     }
 }
-
-
 NCCL_API(ncclResult_t, ncclAllReduce, const void* sendbuff, void* recvbuff, size_t count,
     ncclDataType_t datatype, ncclRedOp_t op, ncclComm* comm, cudaStream_t stream);
 ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
@@ -129,9 +173,9 @@ ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
     //NVTX3_PAYLOAD(comm ? comm->commHash : 0, count * ncclTypeSize(datatype), op));
     //printf("ncclAllReduce done\n");
     nvtxRangePushA("nccl:all_reduce");
-
+    printf("nccl:all_reduce\n");
     float* dummy_data;
-    cudaMalloc(&dummy_data, sizeof(float) * 1);
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
 
     dim3 threads(1);
     dim3 blocks(1);
@@ -142,58 +186,185 @@ ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
     // ✅ 方式二：你也可以用 cudaLaunchKernel 直接调度
     // void* args[] = { &dummy_data };
     // cudaLaunchKernel((void*)fake_nccl_kernel, blocks, threads, args, 0, stream);
-
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
     cudaFree(dummy_data);
     nvtxRangePop();
     return ncclSuccess;
+}
+
+__global__ void fake_nccl_broadcast(float* data) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) {
+        // no-op
+    }
 }
 
 NCCL_API(ncclResult_t, ncclBroadcast, const void* sendbuff, void* recvbuff, size_t count, ncclDataType_t datatype, int root,
     ncclComm_t comm, cudaStream_t stream);
 ncclResult_t ncclBroadcast(const void* sendbuff, void* recvbuff, size_t count, ncclDataType_t datatype, int root,
     ncclComm_t comm, cudaStream_t stream){
+    float* dummy_data;
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
+    printf("nccl:broadcast\n");
+    dim3 threads(1);
+    dim3 blocks(1);
+
+    fake_nccl_broadcast<<<blocks, threads, 0, stream>>>(dummy_data);
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
+    cudaFree(dummy_data);
     return ncclSuccess;
+}
+
+__global__ void fake_nccl_bcast(float* data) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) {
+        // no-op
+    }
 }
 
 NCCL_API(ncclResult_t, ncclBcast, void* buff, size_t count, ncclDataType_t datatype, int root,
     ncclComm_t comm, cudaStream_t stream);
 ncclResult_t ncclBcast(void* buff, size_t count, ncclDataType_t datatype, int root,
     ncclComm_t comm, cudaStream_t stream) {
+    float* dummy_data;
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
+    printf("nccl:bcast\n");
+    dim3 threads(1);
+    dim3 blocks(1);
+
+    fake_nccl_bcast<<<blocks, threads, 0, stream>>>(dummy_data);
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
+    cudaFree(dummy_data);
   return ncclSuccess;
 }
+
+__global__ void fake_nccl_reduce(float* data) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) {
+        // no-op
+    }
+}   
 
 NCCL_API(ncclResult_t, ncclReduce, const void* sendbuff, void* recvbuff, size_t count,
     ncclDataType_t datatype, ncclRedOp_t op, int root, ncclComm_t comm, cudaStream_t stream);
 ncclResult_t ncclReduce(const void* sendbuff, void* recvbuff, size_t count,
     ncclDataType_t datatype, ncclRedOp_t op, int root, ncclComm_t comm, cudaStream_t stream) {
+    float* dummy_data;
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
+    printf("nccl:reduce\n");
+    dim3 threads(1);
+    dim3 blocks(1);
+
+    fake_nccl_reduce<<<blocks, threads, 0, stream>>>(dummy_data);
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
+    cudaFree(dummy_data);
     return ncclSuccess;
 }
 
+__global__ void fake_nccl_reduce_scatter(float* data) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) {
+        // no-op
+    }
+}
 
 NCCL_API(ncclResult_t, ncclReduceScatter, const void* sendbuff, void* recvbuff, size_t recvcount,
     ncclDataType_t datatype, ncclRedOp_t op, ncclComm* comm, cudaStream_t stream);
 ncclResult_t ncclReduceScatter(const void* sendbuff, void* recvbuff, size_t recvcount,
     ncclDataType_t datatype, ncclRedOp_t op, ncclComm* comm, cudaStream_t stream) {
+    float* dummy_data;
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
+    printf("nccl:reduce_scatter\n");
+    dim3 threads(1);
+    dim3 blocks(1);
+
+    fake_nccl_reduce_scatter<<<blocks, threads, 0, stream>>>(dummy_data);
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
+    cudaFree(dummy_data);
     return ncclSuccess;
 }
     
 //点对点通信部分*************************************************
+__global__ void fake_nccl_send(float* data) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) {
+        // no-op
+    }
+}
+
 NCCL_API(ncclResult_t, ncclSend, const void* sendbuff, size_t count, ncclDataType_t datatype, int peer,
     ncclComm_t comm, cudaStream_t stream);
 ncclResult_t ncclSend(const void* sendbuff, size_t count, ncclDataType_t datatype, int peer,
     ncclComm_t comm, cudaStream_t stream) {
+    float* dummy_data;
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
+    printf("nccl:send\n");
+    dim3 threads(1);
+    dim3 blocks(1);
+
+    fake_nccl_send<<<blocks, threads, 0, stream>>>(dummy_data);
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
+    cudaFree(dummy_data);
     return ncclSuccess;
 }
 
-
+__global__ void fake_nccl_recv(float* data) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) {
+        // no-op
+    }
+}
 
 NCCL_API(ncclResult_t, ncclRecv, void* recvbuff, size_t count, ncclDataType_t datatype, int peer,
     ncclComm_t comm, cudaStream_t stream);
 ncclResult_t ncclRecv(void* recvbuff, size_t count, ncclDataType_t datatype, int peer,
     ncclComm_t comm, cudaStream_t stream) {
+    float* dummy_data;
+    cudaError_t err = cudaMalloc(&dummy_data, sizeof(float) * 1);
+    printf("nccl:recv\n");
+    dim3 threads(1);
+    dim3 blocks(1);
+
+    fake_nccl_recv<<<blocks, threads, 0, stream>>>(dummy_data);
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize failed: %s\n", cudaGetErrorString(err));
+        cudaFree(dummy_data);
+        return ncclSystemError; // or appropriate error code
+    }
+    cudaFree(dummy_data);
     return ncclSuccess;
 }
-
 //组行为部分*************************************************
 
 
